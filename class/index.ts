@@ -1,4 +1,4 @@
-import { burnTransactionData, burnTransactionOptions } from '@/types';
+import { burnTransactionData, burnTransactionOptions } from '../types/index';
 import { Commitment, Connection, PublicKey } from '@solana/web3.js';
 
 export default class SolanaTokenUtils extends Connection {
@@ -31,7 +31,7 @@ export default class SolanaTokenUtils extends Connection {
      * @param {burnTransactionOptions} config optional configuration object
      * @returns {Promise<burnTransactionData | null>} the burn transaction details
      */
-    async getBurnTransactionInfo(signature: string, config = {} as burnTransactionOptions): Promise<burnTransactionData | null> {
+    async getBurnTransactionInfo(signature: string, config: burnTransactionOptions = {}): Promise<burnTransactionData | null> {
         const { commitment, fetchNewBalance } = config;
 
         try {
