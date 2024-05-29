@@ -26,7 +26,7 @@ const utils = new SolanaTokenutils({
 
 const tx = "3nbN4CQJ77i6V9arVX9TtrXiKLQcnLZ4eauWMjryoedwZXYc89HepqpZpJUmkzsS8CZTMbnNncWDZZVtWF84tgqf"
 
-utils.getBurnTransactionInfo(tx, { fetchNewBlance: true }).then(console.log)
+utils.getBurnTransactionInfo(tx, { fetchNewBalance: true }).then(console.log)
 // {
 //   amount: '2235067977499',
 //   mint: 'ED7G2vS2sj1FZmi8dn65vzKXSYkTZ1DkzovuuRgCzKyX',
