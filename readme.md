@@ -20,7 +20,7 @@ import { config } from 'dotenv'
 config()
 
 const decoder = new TokenUtils({
-    commitment: "confirmed"
+    commitment: "confirmed",
     httpEndpoint: process.env.HTTP
 })
 

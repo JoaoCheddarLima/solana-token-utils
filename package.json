@@ -2,15 +2,18 @@
   "name": "sol-token-utils",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@solana/web3.js": "^1.91.8"
+    "@solana/web3.js": "^1.91.8",
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
