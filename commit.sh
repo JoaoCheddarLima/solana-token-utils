@@ -15,6 +15,14 @@ echo "Commiting your build"
 
 git commit -m "$x"
 
+echo "Making the npm patch"
+
+npm version patch
+
+echo "Publishing"
+
+npm publish
+
 echo "Pushing your build"
 
 git push -u origin main
