@@ -1,3 +1,3 @@
-import SolanaTokenUtils from '@/class/index'
+import SolanaTokenUtils from './class/index'
 
 export default SolanaTokenUtils

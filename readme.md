@@ -15,18 +15,18 @@ or
 ## Decoding burn transactions
 
 ```ts
-import TokenUtils from './sol-token-utils'
+import SolanaTokenutils from 'sol-token-utils'
 import { config } from 'dotenv'
 config()
 
-const decoder = new TokenUtils({
+const utils = new SolanaTokenutils({
     commitment: "confirmed",
     httpEndpoint: process.env.HTTP
 })
 
 const tx = "3nbN4CQJ77i6V9arVX9TtrXiKLQcnLZ4eauWMjryoedwZXYc89HepqpZpJUmkzsS8CZTMbnNncWDZZVtWF84tgqf"
 
-getBurnTransactionInfo(tx, { fetchNewBlance: true }).then(console.log)
+utils.getBurnTransactionInfo(tx, { fetchNewBlance: true }).then(console.log)
 // {
 //   amount: '2235067977499',
 //   mint: 'ED7G2vS2sj1FZmi8dn65vzKXSYkTZ1DkzovuuRgCzKyX',
