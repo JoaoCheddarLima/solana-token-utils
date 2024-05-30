@@ -10,5 +10,6 @@ export interface burnTransactionData {
     mint: string;
     account: string;
     authority: string;
-    newBalance?: number;
+    newAccountBalance?: number;
+    newMintBalance?: number;
 }

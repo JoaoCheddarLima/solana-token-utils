@@ -19,6 +19,10 @@ echo "Making the npm patch"
 
 npm version patch
 
+echo "Building"
+
+yarn build
+
 echo "Publishing"
 
 npm publish

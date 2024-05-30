@@ -55,16 +55,30 @@ export default class SolanaTokenUtils extends Connection {
             const { amount, mint, account, authority } = burnInfo.parsed.info
 
 
-            if (fetchNewBalance) {
+            const getAccountCurrentBalance = async (account: string, commitment: Commitment): Promise<number> => {
                 try {
                     const tokenAccountInfo = await super.getTokenAccountBalance(new PublicKey(account), commitment)
 
-                    const newBalance = tokenAccountInfo.value
-
-                    return { amount, mint, account, authority, newBalance: newBalance.uiAmount }
+                    return tokenAccountInfo.value.uiAmount
                 } catch (err) {
-                    return { amount, mint, account, authority, newBalance: 0 }
+                    return 0
                 }
+            }
+
+            const getMintCurrentBalance = async (mint: string, commitment: Commitment): Promise<number> => {
+                try {
+                    const mintInfo = await super.getTokenSupply(new PublicKey(mint), commitment)
+
+                    return mintInfo.value.uiAmount
+                } catch (err) {
+                    return 0
+                }
+            }
+
+            if (fetchNewBalance) {
+                const [newAccountBalance, newMintBalance] = await Promise.all([getAccountCurrentBalance(account, commitment), getMintCurrentBalance(mint, commitment)])
+
+                return { amount, mint, account, authority, newAccountBalance, newMintBalance }
             } else {
                 return { amount, mint, account, authority }
             }
