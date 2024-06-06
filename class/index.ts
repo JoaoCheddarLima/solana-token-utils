@@ -1,4 +1,4 @@
-import { burnTransactionData, burnTransactionOptions, decodedTokenInformation } from '../types/index';
+import { burnTransactionData, burnTransactionOptions, decodedTokenInformation } from '../types/index.d';
 import { JsonMetadata, Metaplex } from '@metaplex-foundation/js'
 import { Commitment, Connection, PublicKey, VersionedTransactionResponse } from '@solana/web3.js';
 import { decodePair } from '../utils/decoder';
