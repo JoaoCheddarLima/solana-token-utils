@@ -13,3 +13,16 @@ export interface burnTransactionData {
     newAccountBalance?: number;
     newMintBalance?: number;
 }
+
+export interface decodedTokenInformation {
+    token0: string;
+    token1: string;
+    quoteVault: string;
+    quoteMint: string;
+    lpMint: string;
+    creator: string;
+    pair: string;
+    liquidity: number;
+    initialTokens: number;
+    open_time: number;
+}

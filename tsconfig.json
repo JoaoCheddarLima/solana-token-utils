@@ -1,13 +1,15 @@
 {
     "compilerOptions": {
-        "lib": [],
+        "lib": [
+            "es2022"
+        ],
         "strict": false,
         "noImplicitAny": false,
         "allowJs": true,
         "skipLibCheck": true,
         "noEmit": true,
         "esModuleInterop": true,
-        "module": "esnext",
+        "module": "ESNext",
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
