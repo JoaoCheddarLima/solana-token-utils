@@ -189,9 +189,9 @@ export default class SolanaTokenUtils extends Connection {
                         init_pc_amount = init_pc_amount[1]
 
                     }
-
+                    
                     return {
-                        creator: tx.transaction.message.accountKeys[0].toString(),
+                        creator: tx.transaction.message.accountKeys[0].pubkey.toString(),
                         token0: poolState.baseMint.toString(),
                         token1: poolState.quoteMint.toString(),
                         pair: account,
