@@ -175,28 +175,31 @@ export default class SolanaTokenUtils extends Connection {
                 const poolState: any = decodePair().decode(accountInfo.value.data)
 
                 if (poolState.lpReserve !== BigInt(0)) {
-
+                    console.log(poolState)
                     //swap variables in case they came swapped somehow
                     if (poolState.baseMint.toString() == nullAddress) {
 
-                        poolState.baseMint = [poolState.baseMint, poolState.quoteMint]
-                        poolState.quoteMint = poolState.baseMint[0]
-                        poolState.baseMint = poolState.baseMint[1]
-                        poolState.quoteVault = poolState.baseVault
+                        poolState.baseMint = [poolState.quoteMint, poolState.baseMint]
+                        poolState.quoteMint = poolState.baseMint[1]
+                        poolState.baseMint = poolState.baseMint[0]
+
+                        poolState.baseVault = [poolState.quoteVault, poolState.baseVault]
+                        poolState.quoteVault = poolState.baseVault[1]
+                        poolState.baseVault = poolState.baseVault[0]
 
                         init_pc_amount = [init_pc_amount, init_coin_amount]
                         init_coin_amount = init_pc_amount[0]
                         init_pc_amount = init_pc_amount[1]
 
                     }
-                    
+
                     return {
                         creator: tx.transaction.message.accountKeys[0].pubkey.toString(),
                         token0: poolState.baseMint.toString(),
                         token1: poolState.quoteMint.toString(),
                         pair: account,
                         quoteVault: poolState.quoteVault.toString(),
-                        quoteMint: poolState.quoteMint.toString(),
+                        quoteMint: poolState.baseVault.toString(),
                         lpMint: poolState.lpMint.toString(),
                         liquidity: Number(init_pc_amount / 10 ** 9),
                         initialTokens: Number(init_coin_amount),
