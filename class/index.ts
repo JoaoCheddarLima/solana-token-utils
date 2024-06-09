@@ -156,60 +156,62 @@ export default class SolanaTokenUtils extends Connection {
 
         if (!tx || !tx.meta) return null
 
-        // @ts-ignore - This is a hack to get the relevant accounts that we need to decode the transaction
-        const raydiumRelatedAccounts: string[] = (tx.transaction.message.instructions.find(i => i.programId.toString() == "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")).accounts.map((e: PublicKey) => e.toString())
-        const relevantAccounts = raydiumRelatedAccounts.slice(raydiumRelatedAccounts.indexOf(rentAddress) + 1, raydiumRelatedAccounts.indexOf(nullAddress))
+        try {
+            // @ts-ignore - This is a hack to get the relevant accounts that we need to decode the transaction
+            const raydiumRelatedAccounts: string[] = (tx.transaction.message.instructions.find(i => i.programId.toString() == "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")).accounts.map((e: PublicKey) => e.toString())
+            const relevantAccounts = raydiumRelatedAccounts.slice(raydiumRelatedAccounts.indexOf(rentAddress) + 1, raydiumRelatedAccounts.indexOf(nullAddress))
 
-        //note that in this area is a general decode for the message data of the transaction and the types need to be set according to the program
-        const slicer = "Program log: initialize2: InitializeInstruction2 "
-        const logMessage = tx.meta.logMessages.find(e => e.includes(slicer))
-        const jsonStringMessage = logMessage.slice(slicer.length).replaceAll(' ', '"').replaceAll(":", '":').replaceAll(",", '",')
-        let { init_pc_amount, open_time, init_coin_amount, nonce } = JSON.parse(jsonStringMessage)
+            //note that in this area is a general decode for the message data of the transaction and the types need to be set according to the program
+            const slicer = "Program log: initialize2: InitializeInstruction2 "
+            const logMessage = tx.meta.logMessages.find(e => e.includes(slicer))
+            const jsonStringMessage = logMessage.slice(slicer.length).replaceAll(' ', '"').replaceAll(":", '":').replaceAll(",", '",')
+            let { init_pc_amount, open_time, init_coin_amount, nonce } = JSON.parse(jsonStringMessage)
 
-        //needs to add types here because idk what is actually happening ts not working properly for those libs
-        for (const account of relevantAccounts) {
-            try {
-                //note that the types are any due to issue with the library? or I forgot to add the types on it smh
+            //needs to add types here because idk what is actually happening ts not working properly for those libs
+            for (const account of relevantAccounts) {
+                try {
+                    //note that the types are any due to issue with the library? or I forgot to add the types on it smh
 
-                const accountInfo: any = await this.getParsedAccountInfo(new PublicKey(account))
-                const poolState: any = decodePair().decode(accountInfo.value.data)
+                    const accountInfo: any = await this.getParsedAccountInfo(new PublicKey(account))
+                    const poolState: any = decodePair().decode(accountInfo.value.data)
 
-                if (poolState.lpReserve !== BigInt(0)) {
-                    console.log(poolState)
-                    //swap variables in case they came swapped somehow
-                    if (poolState.baseMint.toString() == nullAddress) {
+                    if (poolState.lpReserve !== BigInt(0)) {
+                        console.log(poolState)
+                        //swap variables in case they came swapped somehow
+                        if (poolState.baseMint.toString() == nullAddress) {
 
-                        poolState.baseMint = [poolState.quoteMint, poolState.baseMint]
-                        poolState.quoteMint = poolState.baseMint[1]
-                        poolState.baseMint = poolState.baseMint[0]
+                            poolState.baseMint = [poolState.quoteMint, poolState.baseMint]
+                            poolState.quoteMint = poolState.baseMint[1]
+                            poolState.baseMint = poolState.baseMint[0]
 
-                        poolState.baseVault = [poolState.quoteVault, poolState.baseVault]
-                        poolState.quoteVault = poolState.baseVault[1]
-                        poolState.baseVault = poolState.baseVault[0]
+                            poolState.baseVault = [poolState.quoteVault, poolState.baseVault]
+                            poolState.quoteVault = poolState.baseVault[1]
+                            poolState.baseVault = poolState.baseVault[0]
 
-                        init_pc_amount = [init_pc_amount, init_coin_amount]
-                        init_coin_amount = init_pc_amount[0]
-                        init_pc_amount = init_pc_amount[1]
+                            init_pc_amount = [init_pc_amount, init_coin_amount]
+                            init_coin_amount = init_pc_amount[0]
+                            init_pc_amount = init_pc_amount[1]
 
+                        }
+
+                        return {
+                            creator: tx.transaction.message.accountKeys[0].pubkey.toString(),
+                            token0: poolState.baseMint.toString(),
+                            token1: poolState.quoteMint.toString(),
+                            pair: account,
+                            quoteVault: poolState.quoteVault.toString(),
+                            quoteMint: poolState.baseVault.toString(),
+                            lpMint: poolState.lpMint.toString(),
+                            liquidity: Number(init_pc_amount / 10 ** 9),
+                            initialTokens: Number(init_coin_amount),
+                            open_time: Number(open_time)
+                        }
                     }
+                } catch (err) {
 
-                    return {
-                        creator: tx.transaction.message.accountKeys[0].pubkey.toString(),
-                        token0: poolState.baseMint.toString(),
-                        token1: poolState.quoteMint.toString(),
-                        pair: account,
-                        quoteVault: poolState.quoteVault.toString(),
-                        quoteMint: poolState.baseVault.toString(),
-                        lpMint: poolState.lpMint.toString(),
-                        liquidity: Number(init_pc_amount / 10 ** 9),
-                        initialTokens: Number(init_coin_amount),
-                        open_time: Number(open_time)
-                    }
                 }
-            } catch (err) {
-
             }
-        }
+        } catch (err) { }
 
         return null
     }

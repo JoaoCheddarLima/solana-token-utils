@@ -4,3 +4,4 @@ test.ts
 .env
 /node_modules
 /dist
+ignore.ts

@@ -1,7 +1,8 @@
 {
     "compilerOptions": {
         "lib": [
-            "es2022"
+            "es2022",
+            "ES6"
         ],
         "strict": false,
         "noImplicitAny": false,
