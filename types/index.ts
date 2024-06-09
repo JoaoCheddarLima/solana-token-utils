@@ -25,4 +25,5 @@ export interface decodedTokenInformation {
     liquidity: number;
     initialTokens: number;
     open_time: number;
+    swap: boolean
 }

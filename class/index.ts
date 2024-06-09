@@ -166,7 +166,7 @@ export default class SolanaTokenUtils extends Connection {
             const logMessage = tx.meta.logMessages.find(e => e.includes(slicer))
             const jsonStringMessage = logMessage.slice(slicer.length).replaceAll(' ', '"').replaceAll(":", '":').replaceAll(",", '",')
             let { init_pc_amount, open_time, init_coin_amount, nonce } = JSON.parse(jsonStringMessage)
-
+            let swap = false
             //needs to add types here because idk what is actually happening ts not working properly for those libs
             for (const account of relevantAccounts) {
                 try {
@@ -176,10 +176,9 @@ export default class SolanaTokenUtils extends Connection {
                     const poolState: any = decodePair().decode(accountInfo.value.data)
 
                     if (poolState.lpReserve !== BigInt(0)) {
-                        console.log(poolState)
                         //swap variables in case they came swapped somehow
                         if (poolState.baseMint.toString() == nullAddress) {
-
+                            swap = true
                             poolState.baseMint = [poolState.quoteMint, poolState.baseMint]
                             poolState.quoteMint = poolState.baseMint[1]
                             poolState.baseMint = poolState.baseMint[0]
@@ -204,14 +203,17 @@ export default class SolanaTokenUtils extends Connection {
                             lpMint: poolState.lpMint.toString(),
                             liquidity: Number(init_pc_amount / 10 ** 9),
                             initialTokens: Number(init_coin_amount),
-                            open_time: Number(open_time)
+                            open_time: Number(open_time),
+                            swap
                         }
                     }
                 } catch (err) {
 
                 }
             }
-        } catch (err) { }
+        } catch (err) {
+            console.error(err)
+        }
 
         return null
     }
