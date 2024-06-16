@@ -1,6 +1,5 @@
 import bs58 from 'bs58';
 
-import { LogUtility } from '@/swapUtils/logUtils';
 import {
   JsonMetadata,
   Metaplex,
@@ -25,6 +24,7 @@ import {
   createPoolKeys,
   getTokenAccounts,
 } from '../swapUtils/liquidity';
+import { LogUtility } from '../swapUtils/logUtils';
 import { getMinimalMarketV3 } from '../swapUtils/market';
 import {
   Liquidity,

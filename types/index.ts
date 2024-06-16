@@ -1,7 +1,8 @@
 import BN from 'bn.js';
 
-import { LiquidityAssociatedPoolKeysV4 } from '@/swapUtils/raydium';
 import { Commitment } from '@solana/web3.js';
+
+import { LiquidityAssociatedPoolKeysV4 } from '../swapUtils/raydium';
 
 export interface burnTransactionOptions {
     commitment?: Commitment;

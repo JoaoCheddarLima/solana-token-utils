@@ -1,15 +1,13 @@
-import { Commitment, PublicKey } from '@solana/web3.js';
+import { struct } from '@solana/buffer-layout';
+import { publicKey } from '@solana/buffer-layout-utils';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
-    publicKey
-} from '@solana/buffer-layout-utils'
-import {
-    struct
-} from '@solana/buffer-layout'
+  Commitment,
+  PublicKey,
+} from '@solana/web3.js';
 
-import * as Raydium from './raydium'
-import SolanaTokenUtils from '..';
-import { LiquidityPoolInfo } from '@/types';
+import SolanaTokenUtils from '../';
+import * as Raydium from './raydium';
 
 export const RAYDIUM_LIQUIDITY_PROGRAM_ID_V4 = Raydium.MAINNET_PROGRAM_ID.AmmV4
 export const OPENBOOK_PROGRAM_ID = Raydium.MAINNET_PROGRAM_ID.OPENBOOK_MARKET;
