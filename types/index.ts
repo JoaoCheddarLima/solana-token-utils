@@ -1,6 +1,8 @@
-import { LiquidityAssociatedPoolKeysV4 } from "@/swapUtils/raydium";
-import { Commitment } from "@solana/web3.js";
-import BN from 'bn.js'
+import BN from 'bn.js';
+
+import { LiquidityAssociatedPoolKeysV4 } from '@/swapUtils/raydium';
+import { Commitment } from '@solana/web3.js';
+
 export interface burnTransactionOptions {
     commitment?: Commitment;
     fetchNewBalance?: boolean
@@ -37,4 +39,17 @@ export interface LiquidityPoolInfo extends LiquidityAssociatedPoolKeysV4 {
     quoteReserve: BN
     lpSupply: BN
     startTime: BN
+}
+
+export interface TransactioNResults {
+    error: boolean,
+    message: string | null,
+    signature: string | null
+}
+
+export interface TransactionBody {
+    pair: string,
+    privateKey: string,
+    amountIn: number,
+    tipAmount: number
 }

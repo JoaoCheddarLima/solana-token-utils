@@ -1,5 +1,6 @@
 import bs58 from 'bs58';
 
+import { LogUtility } from '@/swapUtils/logUtils';
 import {
   JsonMetadata,
   Metaplex,
@@ -7,6 +8,7 @@ import {
 import {
   createAssociatedTokenAccountIdempotentInstruction,
   getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import {
   Commitment,
@@ -34,6 +36,8 @@ import {
   burnTransactionData,
   burnTransactionOptions,
   decodedTokenInformation,
+  TransactionBody,
+  TransactioNResults,
 } from '../types/index';
 import { decodePair } from '../utils/decoder';
 
@@ -252,21 +256,19 @@ export default class SolanaTokenUtils extends Connection {
         return null
     }
 
+    /**
+     * Buys a raydium token for the specified wallet
+     *
+     * @param {TransactionBody} config the transaction configuration
+     * @returns {Promise<TransactioNResults>} the transaction results
+     */
     async buyRaydiumToken({
         pair,
         privateKey,
         amountIn,
         tipAmount
-    }: {
-        pair: string,
-        privateKey: string,
-        amountIn: number,
-        tipAmount: number
-    }): Promise<{
-        error: boolean,
-        message: string | null,
-        transaction: string | null
-    }> {
+    }: TransactionBody): Promise<TransactioNResults> {
+        const log = new LogUtility()
         try {
             const quoteToken = Token.WSOL
             const quoteAmount = new TokenAmount(quoteToken, amountIn, false)
@@ -353,6 +355,8 @@ export default class SolanaTokenUtils extends Connection {
                 preflightCommitment: this.commitment,
             });
 
+            log.setSignature(signature)
+
             const confirmation = await this.confirmTransaction({
                 signature,
                 lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
@@ -360,25 +364,123 @@ export default class SolanaTokenUtils extends Connection {
             }, this.commitment)
 
             if (!confirmation.value.err) {
-                return {
-                    error: false,
-                    message: "Transaction confirmed",
-                    transaction: signature
-                }
+                return log.success("Transaction confirmed")
             } else {
-                return {
-                    error: true,
-                    message: "transaction failed",
-                    transaction: null
-                }
+                return log.fail("Transaction failed")
             }
         } catch (err) {
             console.error(err)
-            return {
-                error: true,
-                message: '',
-                transaction: null
+            return log.error()
+        }
+    }
+
+    /**
+     * Sells a raydium token for the specified wallet
+     *
+     * @param {TransactionBody} config the transaction configuration
+     * @returns {Promise<TransactioNResults>} the transaction results
+     */
+    async sellRaydiumToken({
+        pair,
+        privateKey,
+        amountIn
+    }: TransactionBody): Promise<TransactioNResults> {
+        const log = new LogUtility()
+        try {
+            const pairPub = new PublicKey(pair)
+            const poolData = await this.getParsedAccountInfo(pairPub)
+
+            if (!poolData) return log.error()
+            //@ts-ignore
+            const poolState = LIQUIDITY_STATE_LAYOUT_V4.decode(poolData.value.data)
+            const tokenIn = new Token(TOKEN_PROGRAM_ID, poolState.baseMint, Number(poolState.quoteDecimal))
+            const tokenAmountIn = new TokenAmount(tokenIn, amountIn, false)
+
+            if (tokenAmountIn.raw == 0) return log.error()
+
+            const market = await getMinimalMarketV3(this, poolState.marketId, 'confirmed')
+            const poolKeys = createPoolKeys(pairPub, poolState, market)
+
+            const wallet = Keypair.fromSecretKey(bs58.decode(privateKey))
+            const quoteToken = Token.WSOL
+
+            const tokenAccounts = await getTokenAccounts(this, wallet.publicKey, this.commitment)
+            const existentTokenAccounts = new Map<string, { mint: PublicKey, address: PublicKey }>()
+            for (const ta of tokenAccounts) {
+                existentTokenAccounts.set(ta.accountInfo.mint.toString(), { mint: ta.accountInfo.mint, address: ta.pubkey })
             }
+
+            const ta = tokenAccounts.find(f => f.accountInfo.mint.toString() == quoteToken.mint.toString())
+            const quoteTokenAssociatedAddress = ta.pubkey
+
+            const tokenAccount = {
+                address: getAssociatedTokenAddressSync(poolState.quoteMint, wallet.publicKey),
+                mint: poolState.baseMint,
+                market: {
+                    bids: market.bids,
+                    asks: market.asks,
+                    eventQueue: market.eventQueue
+                }
+            }
+
+            const { innerTransaction } = Liquidity.makeSwapFixedInInstruction(
+                {
+                    //@ts-ignore
+                    poolKeys,
+                    userKeys: {
+                        tokenAccountIn: tokenAccount.address,
+                        tokenAccountOut: quoteTokenAssociatedAddress,
+                        owner: wallet.publicKey,
+                    },
+                    amountIn: tokenAmountIn.raw,
+                    minAmountOut: 0,
+                },
+                poolKeys.version,
+            );
+
+            const latestBlockhash = await this.getLatestBlockhash({
+                commitment: this.commitment
+            })
+
+            const messageV0 = new TransactionMessage({
+                payerKey: wallet.publicKey,
+                recentBlockhash: latestBlockhash.blockhash,
+                instructions: [
+                    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 820000 }),
+                    ComputeBudgetProgram.setComputeUnitLimit({ units: 101337 }),
+                    ...innerTransaction.instructions,
+                    // createCloseAccountInstruction(
+                    //     tokenAccount.address,
+                    //     wallet.publicKey,
+                    //     wallet.publicKey
+                    // )
+                ],
+            }).compileToV0Message();
+
+            const transaction = new VersionedTransaction(messageV0);
+            transaction.sign([wallet, ...innerTransaction.signers]);
+
+            const signature = await this.sendRawTransaction(transaction.serialize(), {
+                preflightCommitment: this.commitment,
+            });
+
+            log.setSignature(signature)
+
+            const confirmation = await this.confirmTransaction({
+                signature,
+                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                blockhash: latestBlockhash.blockhash
+            }, this.commitment)
+
+            if (!confirmation.value.err) {
+                return log.success("Transaction confirmed")
+            } else {
+                return log.fail("Transaction failed")
+            }
+
+        } catch (err) {
+            console.error(err)
+            return log.error()
         }
     }
 }
