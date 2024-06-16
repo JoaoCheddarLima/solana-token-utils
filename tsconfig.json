@@ -27,7 +27,7 @@
     "include": [
         "**/*.ts",
         "**/*.tsx"
-    ],
+, "swapUtils/liquidity.ts"    ],
     "exclude": [
         "node_modules"
     ]

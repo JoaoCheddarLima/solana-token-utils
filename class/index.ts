@@ -1,6 +1,40 @@
-import { burnTransactionData, burnTransactionOptions, decodedTokenInformation } from '../types/index';
-import { JsonMetadata, Metaplex } from '@metaplex-foundation/js'
-import { Commitment, Connection, PublicKey, VersionedTransactionResponse } from '@solana/web3.js';
+import bs58 from 'bs58';
+
+import {
+  JsonMetadata,
+  Metaplex,
+} from '@metaplex-foundation/js';
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  getAssociatedTokenAddressSync,
+} from '@solana/spl-token';
+import {
+  Commitment,
+  ComputeBudgetProgram,
+  Connection,
+  Keypair,
+  PublicKey,
+  TransactionMessage,
+  VersionedTransaction,
+  VersionedTransactionResponse,
+} from '@solana/web3.js';
+
+import {
+  createPoolKeys,
+  getTokenAccounts,
+} from '../swapUtils/liquidity';
+import { getMinimalMarketV3 } from '../swapUtils/market';
+import {
+  Liquidity,
+  LIQUIDITY_STATE_LAYOUT_V4,
+  Token,
+  TokenAmount,
+} from '../swapUtils/raydium';
+import {
+  burnTransactionData,
+  burnTransactionOptions,
+  decodedTokenInformation,
+} from '../types/index';
 import { decodePair } from '../utils/decoder';
 
 export default class SolanaTokenUtils extends Connection {
@@ -216,5 +250,135 @@ export default class SolanaTokenUtils extends Connection {
         }
 
         return null
+    }
+
+    async buyRaydiumToken({
+        pair,
+        privateKey,
+        amountIn,
+        tipAmount
+    }: {
+        pair: string,
+        privateKey: string,
+        amountIn: number,
+        tipAmount: number
+    }): Promise<{
+        error: boolean,
+        message: string | null,
+        transaction: string | null
+    }> {
+        try {
+            const quoteToken = Token.WSOL
+            const quoteAmount = new TokenAmount(quoteToken, amountIn, false)
+
+            const wallet = Keypair.fromSecretKey(bs58.decode(privateKey))
+
+            const lpState = await this.getParsedAccountInfo(new PublicKey(pair))
+            //@ts-ignore
+            const poolState = LIQUIDITY_STATE_LAYOUT_V4.decode(lpState.value.data)
+
+            if (poolState.baseMint.toString() == "So11111111111111111111111111111111111111112") {
+                // @ts-ignore this is a swap
+                poolState.baseMint = [poolState.baseMint, poolState.quoteMint]
+
+                poolState.quoteMint = poolState.baseMint[0]
+                poolState.baseMint = poolState.baseMint[1]
+            }
+
+            const tokenAccounts = await getTokenAccounts(this, wallet.publicKey, this.commitment)
+            const existentTokenAccounts = new Map<string, { mint: PublicKey, address: PublicKey }>()
+            for (const ta of tokenAccounts) {
+                existentTokenAccounts.set(ta.accountInfo.mint.toString(), { mint: ta.accountInfo.mint, address: ta.pubkey })
+            }
+
+            const ta = tokenAccounts.find(f => f.accountInfo.mint.toString() == quoteToken.mint.toString())
+            const quoteTokenAssociatedAddress = ta.pubkey
+
+            if (!lpState) return null
+
+            const market = await getMinimalMarketV3(this, poolState.marketId, 'confirmed')
+
+            const tokenAccount = {
+                address: getAssociatedTokenAddressSync(poolState.baseMint, wallet.publicKey),
+                mint: poolState.baseMint,
+                market: {
+                    bids: market.bids,
+                    asks: market.asks,
+                    eventQueue: market.eventQueue
+                }
+            }
+
+            const poolKeys = createPoolKeys(new PublicKey(pair), poolState, market)
+
+            const { innerTransaction } = Liquidity.makeSwapFixedInInstruction(
+                {
+                    //@ts-ignore
+                    poolKeys,
+                    userKeys: {
+                        tokenAccountIn: quoteTokenAssociatedAddress,
+                        tokenAccountOut: tokenAccount.address,
+                        owner: wallet.publicKey,
+                    },
+                    amountIn: quoteAmount.raw,
+                    minAmountOut: 0,
+                },
+                poolKeys.version,
+            );
+
+            const latestBlockhash = await this.getLatestBlockhash({
+                commitment: this.commitment
+            })
+
+            const messageV0 = new TransactionMessage({
+                payerKey: wallet.publicKey,
+                recentBlockhash: latestBlockhash.blockhash,
+                instructions: [
+                    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 820000 }),
+                    ComputeBudgetProgram.setComputeUnitLimit({ units: 101337 }),
+                    createAssociatedTokenAccountIdempotentInstruction(
+                        wallet.publicKey,
+                        tokenAccount.address,
+                        wallet.publicKey,
+                        poolState.baseMint,
+                    ),
+                    ...innerTransaction.instructions,
+
+                ],
+            }).compileToV0Message();
+
+            const transaction = new VersionedTransaction(messageV0);
+            transaction.sign([wallet, ...innerTransaction.signers]);
+
+            const signature = await this.sendRawTransaction(transaction.serialize(), {
+                preflightCommitment: this.commitment,
+            });
+
+            const confirmation = await this.confirmTransaction({
+                signature,
+                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                blockhash: latestBlockhash.blockhash
+            }, this.commitment)
+
+            if (!confirmation.value.err) {
+                return {
+                    error: false,
+                    message: "Transaction confirmed",
+                    transaction: signature
+                }
+            } else {
+                return {
+                    error: true,
+                    message: "transaction failed",
+                    transaction: null
+                }
+            }
+        } catch (err) {
+            console.error(err)
+            return {
+                error: true,
+                message: '',
+                transaction: null
+            }
+        }
     }
 }

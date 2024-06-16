@@ -1,5 +1,6 @@
+import { LiquidityAssociatedPoolKeysV4 } from "@/swapUtils/raydium";
 import { Commitment } from "@solana/web3.js";
-
+import BN from 'bn.js'
 export interface burnTransactionOptions {
     commitment?: Commitment;
     fetchNewBalance?: boolean
@@ -26,4 +27,14 @@ export interface decodedTokenInformation {
     initialTokens: number;
     open_time: number;
     swap: boolean
+}
+export interface LiquidityPoolInfo extends LiquidityAssociatedPoolKeysV4 {
+    status: BN
+    baseDecimal: number
+    quoteDecimal: number
+    lpDecimals: number
+    baseReserve: BN
+    quoteReserve: BN
+    lpSupply: BN
+    startTime: BN
 }
