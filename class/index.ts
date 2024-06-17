@@ -1,5 +1,6 @@
 import bs58 from 'bs58';
 
+import { CreateTraderAPITipInstruction } from '@/swapUtils/bribe';
 import {
   JsonMetadata,
   Metaplex,
@@ -337,6 +338,7 @@ export default class SolanaTokenUtils extends Connection {
                 instructions: [
                     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 820000 }),
                     ComputeBudgetProgram.setComputeUnitLimit({ units: 101337 }),
+                    CreateTraderAPITipInstruction(wallet.publicKey, tipAmount),
                     createAssociatedTokenAccountIdempotentInstruction(
                         wallet.publicKey,
                         tokenAccount.address,
@@ -383,7 +385,8 @@ export default class SolanaTokenUtils extends Connection {
     async sellRaydiumToken({
         pair,
         privateKey,
-        amountIn
+        amountIn,
+        tipAmount
     }: TransactionBody): Promise<TransactioNResults> {
         const log = new LogUtility()
         try {
@@ -448,6 +451,7 @@ export default class SolanaTokenUtils extends Connection {
                 instructions: [
                     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 820000 }),
                     ComputeBudgetProgram.setComputeUnitLimit({ units: 101337 }),
+                    CreateTraderAPITipInstruction(wallet.publicKey, tipAmount),
                     ...innerTransaction.instructions,
                     // createCloseAccountInstruction(
                     //     tokenAccount.address,
