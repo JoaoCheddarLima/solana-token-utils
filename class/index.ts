@@ -1,6 +1,5 @@
 import bs58 from 'bs58';
 
-import { CreateTraderAPITipInstruction } from '@/swapUtils/bribe';
 import {
   JsonMetadata,
   Metaplex,
@@ -21,6 +20,7 @@ import {
   VersionedTransactionResponse,
 } from '@solana/web3.js';
 
+import { CreateTraderAPITipInstruction } from '../swapUtils/bribe';
 import {
   createPoolKeys,
   getTokenAccounts,
